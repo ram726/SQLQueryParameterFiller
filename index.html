@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Query Parameter Filler</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --info-color: #0dcaf0;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border: none;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 2px solid var(--primary-color);
+            font-weight: 600;
+            color: #333;
+            padding: 15px 20px;
+        }
+        
+        .card-header.info {
+            border-bottom-color: var(--info-color);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        .btn {
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+        
+        .btn-info {
+            background-color: var(--info-color);
+            border-color: var(--info-color);
+            color: white;
+        }
+        
+        .btn-outline-secondary {
+            border-color: var(--border-color);
+            color: var(--secondary-color);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .footer {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .example-text {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .alert-info {
+            background-color: #e7f1ff;
+            border-color: #cfe2ff;
+            color: #084298;
+        }
+        
+        .preview-box {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .test-query-card {
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .test-query-btn {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .btn-responsive {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    <h1 class="mb-2" style="color: var(--primary-color);">
+                        <i class="bi bi-file-earmark-text-fill"></i> SQL Query Parameter Filler
+                    </h1>
+                    <p class="text-muted">Fill parameter placeholders in SQL queries with actual values</p>
+                </div>              
+              
+                
+                <!-- Main Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-input-cursor-text"></i> Query & Parameters
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Left Column - Query Input -->
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="queryInput" class="form-label">
+                                    <i class="bi bi-code-slash"></i> Input Query (Use ? for parameters)
+                                </label>
+                                <textarea class="form-control" id="queryInput" rows="10" placeholder="SELECT * FROM users WHERE name = ? AND age = ?">SELECT * FROM users WHERE name = ? AND age = ?</textarea>
+                                <div class="example-text">
+                                    Example: SELECT * FROM table WHERE id = ? AND status = ?
+                                </div>
+                            </div>
+                            
+                            <!-- Right Column - Parameters Input -->
+                            <div class="col-md-6">
+                                <label for="paramsInput" class="form-label">
+                                    <i class="bi bi-braces"></i> Parameters (with [] brackets, comma separated)
+                                </label>
+                                <textarea class="form-control" id="paramsInput" rows="5" placeholder="[value1, value2, value3]">[John, 25]</textarea>
+                                <div class="example-text">
+                                    Enter values inside square brackets, separated by commas.
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="mt-4">
+                                    <button id="generateBtn" class="btn btn-primary btn-responsive me-2 mb-2">
+                                        <i class="bi bi-gear-fill"></i> Generate Output
+                                    </button>
+                                    <button id="copyBtn" class="btn btn-success btn-responsive me-2 mb-2">
+                                        <i class="bi bi-clipboard-check"></i> Copy Output
+                                    </button>
+                                    <button id="clearBtn" class="btn btn-outline-secondary btn-responsive mb-2">
+                                        <i class="bi bi-x-circle"></i> Clear All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Output Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-output"></i> Generated Query Output
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle-fill"></i> The generated SQL query with parameters filled in will appear below.
+                        </div>
+                        
+                        <div id="outputPreview" class="preview-box">
+                                    Generated output will appear here...
+                        </div>
+                        
+                        <div class="mt-3 text-end">
+                            <span class="badge bg-secondary" id="paramCount">0 parameters found</span>
+                            <span class="badge bg-secondary ms-2" id="placeholderCount">0 placeholders found</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="footer text-center">
+                    <div class="row">
+                        <div class="col-md-6 mb-2 mb-md-0">
+                            <div>
+                                <strong>Developed by:</strong> RRKumar
+                            </div>
+                            <div>
+                                <i class="bi bi-envelope-fill"></i> <a href="mailto:rrkumar@ibaset.com">rrkumar@ibaset.com</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div>
+                                <strong>Connect on LinkedIn:</strong>
+                            </div>
+                            <div>
+                                <a href="https://www.linkedin.com/in/iamramranjeetkuamr/" target="_blank" class="social-link">
+                                    <i class="bi bi-linkedin"></i> linkedin.com/in/iamramranjeetkuamr/
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // DOM elements
+        const queryInput = document.getElementById('queryInput');
+        const paramsInput = document.getElementById('paramsInput');
+        const outputPreview = document.getElementById('outputPreview');
+        const generateBtn = document.getElementById('generateBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const paramCount = document.getElementById('paramCount');
+        const placeholderCount = document.getElementById('placeholderCount');
+        
+        // Function to remove unwanted spaces from parameters (matches Java logic)
+        function removeUnwantedSpaces(params) {
+            return params.map(p => p.trim());
+        }
+        
+        // Function to count placeholders in query
+        function countPlaceholders(query) {
+            return (query.match(/\?/g) || []).length;
+        }
+        
+        // Function to extract parameters from bracket format
+        function extractParameters(paramString) {
+            let params = [];
+            
+            // Remove any leading/trailing whitespace
+            paramString = paramString.trim();
+            
+            // Check if parameters are in brackets
+            if (paramString.startsWith('[') && paramString.endsWith(']')) {
+                // Remove brackets and extract content
+                const content = paramString.substring(1, paramString.length - 1).trim();
+                
+                if (content.length > 0) {
+                    // Split by comma but handle commas inside quotes
+                    params = content.split(',').map(p => p.trim());
+                }
+            } else {
+                // If no brackets, treat the whole string as a single parameter
+                params = paramString.length > 0 ? [paramString.trim()] : [];
+            }
+            
+            return params;
+        }
+        
+        // Main function to prepare output (matches Java logic with bracket support)
+        function prepareOutput(query, parameters) {
+            // Extract parameters from bracket format
+            let params = extractParameters(parameters);
+            
+            // Count question marks in the query
+            const questionMarkCount = countPlaceholders(query);
+            
+            // Check if parameter count matches question mark count
+            if (params.length !== questionMarkCount) {
+                return `Error: Query has ${questionMarkCount} parameter placeholder(s) but ${params.length} parameter(s) provided.`;
+            }
+            
+            // Remove unwanted spaces (matches Java logic)
+            params = removeUnwantedSpaces(params);
+            
+            // Replace each ? with the corresponding parameter
+            let resultQuery = query;
+            for (let i = 0; i < params.length; i++) {
+                // For numeric values, don't add quotes (following typical SQL convention)
+                const isNumeric = !isNaN(params[i]) && params[i].trim() !== '';
+                const isDate = /^\d{4}-\d{2}-\d{2}$/.test(params[i].trim());
+                const paramValue = (isNumeric || isDate) ? params[i].trim() : `'${params[i].trim()}'`;
+                
+                // Replace the first occurrence of ?
+                resultQuery = resultQuery.replace('?', paramValue);
+            }
+            
+            return resultQuery;
+        }
+        
+        // Generate output when button is clicked
+        generateBtn.addEventListener('click', function() {
+            const query = queryInput.value;
+            const params = paramsInput.value;
+            
+            if (!query.trim()) {
+                outputPreview.textContent = "Error: Please enter a query.";
+                outputPreview.style.color = "#dc3545";
+                return;
+            }
+            
+            if (!params.trim()) {
+                outputPreview.textContent = "Error: Please enter parameters.";
+                outputPreview.style.color = "#dc3545";
+                return;
+            }
+            
+            const output = prepareOutput(query, params);
+            outputPreview.textContent = output;
+            
+            // Update counts
+            const extractedParams = extractParameters(params);
+            const placeholders = countPlaceholders(query);
+            
+            paramCount.textContent = `${extractedParams.length} parameters found`;
+            placeholderCount.textContent = `${placeholders} placeholders found`;
+            
+            // Set appropriate badge colors
+            if (extractedParams.length === placeholders) {
+                paramCount.className = "badge bg-success";
+                placeholderCount.className = "badge bg-success";
+            } else {
+                paramCount.className = "badge bg-danger";
+                placeholderCount.className = "badge bg-danger";
+            }
+            
+            // Reset color (might have been set to red for error)
+            if (output.startsWith("Error:")) {
+                outputPreview.style.color = "#dc3545";
+                paramCount.className = "badge bg-danger";
+                placeholderCount.className = "badge bg-danger";
+            } else {
+                outputPreview.style.color = "#212529";
+            }
+        });
+        
+        // Copy output to clipboard
+        copyBtn.addEventListener('click', function() {
+            const outputText = outputPreview.textContent;
+            
+            if (!outputText || outputText === "Generated output will appear here..." || outputText.startsWith("Error:")) {
+                alert("No valid output to copy. Please generate output first.");
+                return;
+            }
+            
+            // Use Clipboard API
+            navigator.clipboard.writeText(outputText)
+                .then(() => {
+                    // Show temporary feedback
+                    const originalText = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Copied!';
+                    copyBtn.classList.remove('btn-success');
+                    copyBtn.classList.add('btn-secondary');
+                    
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalText;
+                        copyBtn.classList.remove('btn-secondary');
+                        copyBtn.classList.add('btn-success');
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy text to clipboard. Please try again.');
+                });
+        });
+        
+        // Clear all fields
+        clearBtn.addEventListener('click', function() {
+            queryInput.value = '';
+            paramsInput.value = '';
+            outputPreview.textContent = 'Generated output will appear here...';
+            outputPreview.style.color = '#212529';
+            paramCount.textContent = '0 parameters found';
+            placeholderCount.textContent = '0 placeholders found';
+            paramCount.className = "badge bg-secondary";
+            placeholderCount.className = "badge bg-secondary";
+            
+            // Focus on query input
+            queryInput.focus();
+        });
+        
+        // Load test data when test buttons are clicked
+        document.querySelectorAll('.test-query-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const query = this.getAttribute('data-query');
+                const params = this.getAttribute('data-params');
+                
+                queryInput.value = query;
+                paramsInput.value = params;
+                
+                // Auto-generate output
+                generateBtn.click();
+                
+                // Scroll to the main form
+                document.querySelector('.card-header').scrollIntoView({ behavior: 'smooth' });
+                
+                // Highlight the button temporarily
+                this.classList.remove('btn-info');
+                this.classList.add('btn-success');
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="bi bi-check-circle"></i> Loaded!';
+                
+                setTimeout(() => {
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-info');
+                    this.innerHTML = originalText;
+                }, 1500);
+            });
+        });
+        
+        // Auto-generate output when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            // Load the first test query
+            const firstTestBtn = document.querySelector('.test-query-btn');
+            if (firstTestBtn) {
+                firstTestBtn.click();
+            }
+            
+            // Add keyboard shortcut info
+            const infoAlert = document.querySelector('.alert-info');
+            infoAlert.innerHTML += '<div class="mt-2 small"><i class="bi bi-keyboard"></i> Keyboard shortcuts: Ctrl+Enter to generate, Ctrl+Shift+C to copy, Esc to clear</div>';
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Enter to generate output
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateBtn.click();
+                e.preventDefault();
+            }
+            
+            // Ctrl+Shift+C to copy output
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                copyBtn.click();
+                e.preventDefault();
+            }
+            
+            // Escape to clear all
+            if (e.key === 'Escape') {
+                clearBtn.click();
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
