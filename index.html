@@ -1,279 +1,552 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SQL Query Filler</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Query Filler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --accent:  #5d9cec;
+            --light:   #f8f9fa;
+            --border:  #dee2e6;
+        }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+        body {
+            background: #f0f2f5;
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px 0 40px;
+        }
 
-<style>
-body{
-    background:#f4f6f9;
-    font-family: system-ui, sans-serif;
-}
+        .container { max-width: 1100px; }
 
-.card{
-    border-radius:10px;
-    border:1px solid #ddd;
-}
+        .card {
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
 
-textarea{
-    font-family: monospace;
-    font-size:14px;
-}
+        .card-header {
+            background: white;
+            font-weight: 600;
+            color: #2c3e50;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+        }
 
-pre{
-    font-family: monospace;
-    font-size:14px;
-    white-space: pre-wrap;
-}
+        .form-label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
 
-.copy-icon{
-    cursor:pointer;
-    color:#0d6efd;
-    transition: all 0.2s ease;
-}
+        textarea, .preview-box {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+        }
 
-.copy-icon.copied{
-    color:#198754;
-    transform: scale(1.25);
-}
+        textarea:focus, .preview-box:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(93,156,236,0.15);
+        }
 
-.copy-tooltip{
-    font-size:11px;
-    color:#198754;
-    margin-left:6px;
-}
+        .input-group .btn {
+            z-index: 5;
+        }
 
-.history-item{
-    border:1px solid #ddd;
-    border-radius:8px;
-    padding:8px;
-    margin-bottom:6px;
-    background:#fff;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-</style>
+        .preview-box {
+            background: #fdfdfe;
+            padding: 14px;
+            min-height: 120px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.45;
+        }
+
+        .history-item {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 10px;
+            background: white;
+            transition: all 0.15s;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent);
+        }
+
+        .history-query {
+            font-size: 0.9rem;
+            color: #1a1f36;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-meta {
+            font-size: 0.78rem;
+            color: #6c757d;
+        }
+
+        .badge {
+            font-weight: 500;
+            padding: 5px 10px;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 40px 20px;
+            color: #adb5bd;
+            font-style: italic;
+        }
+
+        .sql-keyword { color: #d63384; font-weight: bold; }
+        .sql-string   { color: #0d6efd; }
+        .sql-number   { color: #198754; }
+
+        .app-title { color: var(--primary); font-weight: 700; }
+
+        footer {
+            margin-top: 40px;
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        @media (max-width: 992px) {
+            .params-column { margin-top: 20px; }
+            .action-buttons { flex-direction: column; gap: 8px; }
+        }
+    </style>
 </head>
-
 <body>
-<div class="container mt-3">
 
-<!-- APP TITLE -->
-<div class="text-center mb-3">
-    <h3 class="fw-bold text-primary">
-        <i class="bi bi-database"></i> SQL Query Filler
-    </h3>
+<div class="container">
+
+    <h1 class="text-center mb-4 app-title">
+        <i class="bi bi-database-gear me-2"></i>SQL Query Filler
+    </h1>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-pencil-square me-2"></i>Query & Parameters
+        </div>
+        <div class="card-body">
+
+            <!-- Action buttons row -->
+            <div class="d-flex flex-wrap gap-2 mb-4 action-buttons">
+                <button id="generateBtn" class="btn btn-primary">
+                    <i class="bi bi-play-fill"></i> Generate SQL
+                </button>
+
+                <button id="beautifyBtn" class="btn btn-info">
+                    <i class="bi bi-magic"></i> Beautify SQL
+                </button>
+
+                <button id="copyRawQueryBtn" class="btn btn-outline-secondary">
+                    <i class="bi bi-clipboard"></i> Copy Raw Query
+                </button>
+
+                <button id="copyRawParamsBtn" class="btn btn-outline-secondary">
+                    <i class="bi bi-clipboard"></i> Copy Raw Params
+                </button>
+
+                <button id="copyGeneratedActionBtn" class="btn btn-outline-success">
+                    <i class="bi bi-clipboard-check"></i> Copy Generated Query
+                </button>
+
+                <button id="clearBtn" class="btn btn-outline-danger">
+                    <i class="bi bi-eraser"></i> Clear All
+                </button>
+
+                <div class="ms-auto d-flex gap-2 align-items-center">
+                    <span class="badge bg-light text-dark border" id="paramCount">0 params</span>
+                    <span class="badge bg-light text-dark border" id="placeholderCount">0 placeholders</span>
+                </div>
+            </div>
+
+            <!-- Query input with inline copy -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label for="queryInput" class="form-label mb-0">
+                        SQL Query <small class="text-muted">(use ? for parameters)</small>
+                    </label>
+                </div>
+                <div class="input-group">
+                    <textarea class="form-control" id="queryInput" rows="8" placeholder="SELECT * FROM users WHERE status = ? AND age > ?"></textarea>
+                    <button class="btn btn-outline-secondary" id="copyQueryInputBtn" type="button">
+                        <i class="bi bi-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+
+            <!-- Parameters input with inline copy -->
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label for="paramsInput" class="form-label mb-0">Parameters</label>
+                </div>
+                <div class="input-group">
+                    <textarea class="form-control" id="paramsInput" rows="5" placeholder='["active", "2024-01-01", 5]'></textarea>
+                    <button class="btn btn-outline-secondary" id="copyParamsInputBtn" type="button">
+                        <i class="bi bi-copy"></i> Copy
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-1">Format: ["value1", 42, true] or single value</small>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Generated Output -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div><i class="bi bi-arrow-right-circle me-2"></i>Generated SQL</div>
+            <button id="copyGeneratedBtn" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-clipboard-check"></i> Copy Generated
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="outputPreview" class="preview-box">
+                Generated SQL will appear here...
+            </div>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-clock-history me-2"></i>Recent Queries (last 5)
+        </div>
+        <div class="card-body">
+            <div id="historyContainer">
+                <div class="empty-history">
+                    <i class="bi bi-clock-history display-5 mb-3 d-block text-muted"></i>
+                    No queries saved yet
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center mt-5">
+        Developed by <strong>RRKumar</strong> • 
+        <a href="mailto:rrkumar@ibaset.com">rrkumar@ibaset.com</a> • 
+        <a href="https://www.linkedin.com/in/iamramranjeetkuamr/" target="_blank">
+            <i class="bi bi-linkedin"></i> LinkedIn
+        </a>
+    </footer>
+
 </div>
 
-<!-- ROW 1 : HEADER + BUTTONS -->
-<div class="card mb-3">
-<div class="card-body p-2 d-flex flex-wrap align-items-center gap-2">
-
-<strong class="me-2">Query Input</strong>
-
-<button id="generateBtn" class="btn btn-primary btn-sm">
-<i class="bi bi-play-fill"></i> Generate SQL
-</button>
-
-<button id="copyFinalBtn" class="btn btn-success btn-sm">
-<i class="bi bi-clipboard"></i> Copy SQL
-</button>
-
-<button id="clearBtn" class="btn btn-outline-secondary btn-sm">
-<i class="bi bi-x-circle"></i> Clear
-</button>
-
-<span id="paramCount" class="badge bg-secondary">0 Params</span>
-<span id="placeholderCount" class="badge bg-secondary">0 Placeholders</span>
-
-</div>
-</div>
-
-<!-- ROW 2 : QUERY + PARAMS -->
-<div class="row g-2 mb-3">
-
-<div class="col-md-8">
-<div class="card">
-<div class="card-body p-2">
-<div class="d-flex justify-content-between align-items-center">
-<strong>SQL Query</strong>
-<i class="bi bi-clipboard copy-icon"
-onclick="copyWithFeedback(this, document.getElementById('queryInput').value)">
-</i>
-</div>
-<textarea id="queryInput" rows="6" class="form-control mt-1"
-placeholder="SELECT * FROM users WHERE name = ? AND age = ?"></textarea>
-</div>
-</div>
-</div>
-
-<div class="col-md-4">
-<div class="card">
-<div class="card-body p-2">
-<div class="d-flex justify-content-between align-items-center">
-<strong>Parameters</strong>
-<i class="bi bi-clipboard copy-icon"
-onclick="copyWithFeedback(this, document.getElementById('paramsInput').value)">
-</i>
-</div>
-<textarea id="paramsInput" rows="6" class="form-control mt-1"
-placeholder="[John, 25]"></textarea>
-</div>
-</div>
-</div>
-
-</div>
-
-<!-- ROW 3 : GENERATED SQL -->
-<div class="card mb-3">
-<div class="card-body p-2">
-<div class="d-flex justify-content-between align-items-center">
-<strong>Generated SQL</strong>
-<i class="bi bi-clipboard copy-icon"
-onclick="copyWithFeedback(this, document.getElementById('outputBox').textContent)">
-</i>
-</div>
-<pre id="outputBox" class="mt-2 mb-0">Generated SQL will appear here...</pre>
-</div>
-</div>
-
-<!-- ROW 4 : HISTORY -->
-<div class="card">
-<div class="card-body p-2">
-<strong>History (Last 5)</strong>
-<div id="historyBox" class="mt-2 text-muted small">No history yet</div>
-</div>
-</div>
-
-<!-- FOOTER -->
-<div class="text-center mt-3 small text-muted">
-Developed by <strong>RRKumar</strong> | rrkumar@ibaset.com
-</div>
-
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const queryInput = document.getElementById("queryInput");
-const paramsInput = document.getElementById("paramsInput");
-const outputBox = document.getElementById("outputBox");
-const paramCount = document.getElementById("paramCount");
-const placeholderCount = document.getElementById("placeholderCount");
-const historyBox = document.getElementById("historyBox");
+// ────────────────────────────────────────────────
+const els = {
+    queryInput:     document.getElementById('queryInput'),
+    paramsInput:    document.getElementById('paramsInput'),
+    outputPreview:  document.getElementById('outputPreview'),
+    generateBtn:    document.getElementById('generateBtn'),
+    beautifyBtn:    document.getElementById('beautifyBtn'),
+    clearBtn:       document.getElementById('clearBtn'),
+    paramCount:     document.getElementById('paramCount'),
+    placeholderCount: document.getElementById('placeholderCount'),
+    
+    copyRawQueryBtn:         document.getElementById('copyRawQueryBtn'),
+    copyRawParamsBtn:        document.getElementById('copyRawParamsBtn'),
+    copyGeneratedActionBtn:  document.getElementById('copyGeneratedActionBtn'),
+    copyQueryInputBtn:       document.getElementById('copyQueryInputBtn'),
+    copyParamsInputBtn:      document.getElementById('copyParamsInputBtn'),
+    copyGeneratedBtn:        document.getElementById('copyGeneratedBtn'),
+};
 
-let history = JSON.parse(localStorage.getItem("sqlHistory") || "[]");
+let history = JSON.parse(localStorage.getItem('sqlFillerHistory')) || [];
+const historyContainer = document.getElementById('historyContainer');
 
-/* COPY WITH LOOK & FEEL */
-function copyWithFeedback(icon, text){
-    navigator.clipboard.writeText(text).then(()=>{
-        const original = icon.className;
-        icon.className = "bi bi-check-circle-fill copy-icon copied";
-
-        const tip = document.createElement("span");
-        tip.className = "copy-tooltip";
-        tip.innerText = "Copied!";
-        icon.after(tip);
-
-        setTimeout(()=>{
-            icon.className = original;
-            tip.remove();
-        },1500);
-    });
+// ────────────────────────────────────────────────
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
-/* PARAM + PLACEHOLDER COUNT */
-function updateCounts(){
-    const pCount = extractParams().length;
-    const qCount = (queryInput.value.match(/\?/g) || []).length;
-    paramCount.textContent = pCount + " Params";
-    placeholderCount.textContent = qCount + " Placeholders";
+function countPlaceholders(str) {
+    return (str.match(/\?/g) || []).length;
 }
 
-/* PARAM EXTRACTION */
-function extractParams(){
-    let v = paramsInput.value.trim();
-    if(v.startsWith("[") && v.endsWith("]")){
-        return v.slice(1,-1).split(",").map(e=>e.trim()).filter(e=>e);
-    }
-    return v ? [v] : [];
-}
+function parseParams(str) {
+    str = str.trim();
+    if (!str) return [];
 
-/* SQL GENERATE */
-function generateSQL(){
-    const query = queryInput.value;
-    const params = extractParams();
-
-    if((query.match(/\?/g)||[]).length !== params.length){
-        outputBox.textContent = "Error: Parameters count mismatch";
-        return;
+    if (str.startsWith('[') && str.endsWith(']')) {
+        try { return JSON.parse(str); } catch(e) {}
     }
 
-    let i=0;
-    let result = query.replace(/\?/g,()=>{
-        const p = params[i++];
-        return isNaN(p) ? `'${p}'` : p;
-    });
-
-    outputBox.textContent = result;
-    addHistory(result);
+    return str.split(',').map(v => v.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
 }
 
-/* HISTORY */
-function addHistory(sql){
-    history.unshift(sql);
-    history = history.slice(0,5);
-    localStorage.setItem("sqlHistory", JSON.stringify(history));
+function prepareQuery(query, paramsStr) {
+    const phCount = countPlaceholders(query);
+    const params = parseParams(paramsStr);
+
+    if (phCount !== params.length) {
+        return `Error: ${phCount} placeholder(s) but ${params.length} value(s) provided.`;
+    }
+
+    let result = query;
+    for (const val of params) {
+        const t = val.trim();
+        let escaped = t;
+
+        if (/^-?\d+(?:\.\d+)?$/.test(t) || 
+            ['true','false','null'].includes(t.toLowerCase())) {
+            // no quotes
+        } else {
+            escaped = `'${t.replace(/'/g, "''")}'`;
+        }
+
+        result = result.replace('?', escaped);
+    }
+    return result;
+}
+
+// ────────────────────────────────────────────────
+function formatSQL(sql) {
+    if (!sql.trim()) return sql;
+
+    let formatted = sql.replace(/\s+/g, ' ').trim();
+
+    const majorClauses = ['SELECT','FROM','WHERE','GROUP BY','HAVING','ORDER BY','LIMIT','OFFSET','VALUES','SET','INSERT INTO','UPDATE','DELETE FROM'];
+    majorClauses.forEach(kw => {
+        formatted = formatted.replace(new RegExp(`\\b(${kw})\\b`, 'gi'), '\n$1');
+    });
+
+    formatted = formatted.replace(/\b(LEFT|RIGHT|INNER|FULL|CROSS)?\s*JOIN\b/gi, '\n$&');
+    formatted = formatted.replace(/\s+(AND|OR)\b/gi, '\n  $1');
+
+    const lines = formatted.split('\n');
+    let indent = 0;
+    const result = [];
+
+    for (let line of lines) {
+        const t = line.trim();
+        if (!t) continue;
+
+        if (/^FROM|WHERE|GROUP BY|HAVING|ORDER BY|LIMIT|OFFSET|VALUES|SET/.test(t)) {
+            indent = Math.max(0, indent - 1);
+        }
+
+        result.push('  '.repeat(indent) + t);
+
+        if (/^SELECT|FROM|WHERE|JOIN|ON|GROUP BY|HAVING|ORDER BY|VALUES|SET/.test(t)) {
+            indent++;
+        }
+    }
+
+    let final = result.join('\n')
+        .replace(/\(\s*/g, '(')
+        .replace(/\s*\)/g, ')')
+        .replace(/,\s*/g, ', ')
+        .replace(/\s*=\s*/g, ' = ')
+        .replace(/\s*([><!]=?)\s*/g, ' $1 ')
+        .replace(/\s+AS\s+/gi, ' AS ')
+        .trim();
+
+    final = final.replace(/\b(SELECT|FROM|WHERE|AND|OR|JOIN|LEFT|RIGHT|INNER|OUTER|FULL|CROSS|GROUP BY|HAVING|ORDER BY|LIMIT|OFFSET|INSERT|UPDATE|DELETE|VALUES|SET|INTO|ON|AS|NULL|TRUE|FALSE)\b/gi, w => w.toUpperCase());
+
+    return final;
+}
+
+function highlightSQL(text) {
+    return text
+        .replace(/\b(SELECT|FROM|WHERE|AND|OR|JOIN|LEFT|RIGHT|INNER|OUTER|FULL|CROSS|GROUP BY|HAVING|ORDER BY|LIMIT|OFFSET|INSERT|UPDATE|DELETE|VALUES|SET|INTO|ON|AS|NULL|TRUE|FALSE)\b/gi,
+            '<span class="sql-keyword">$1</span>')
+        .replace(/'([^']*)'/g, '<span class="sql-string">\'$1\'</span>')
+        .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="sql-number">$1</span>');
+}
+
+// ────────────────────────────────────────────────
+function updateCounts() {
+    const q = els.queryInput.value.trim();
+    const p = parseParams(els.paramsInput.value.trim());
+    const ph = countPlaceholders(q);
+
+    els.paramCount.textContent      = `${p.length} params`;
+    els.placeholderCount.textContent = `${ph} placeholders`;
+
+    const ok = p.length === ph && ph > 0;
+    const cls = ok ? 'bg-success' : (p.length === 0 && ph === 0) ? 'bg-light text-dark border' : 'bg-danger';
+
+    els.paramCount.className = `badge border ${cls}`;
+    els.placeholderCount.className = `badge border ${cls}`;
+}
+
+// ────────────────────────────────────────────────
+function saveHistory(query, params) {
+    history.unshift({ query, params, ts: Date.now() });
+    if (history.length > 5) history.pop();
+    localStorage.setItem('sqlFillerHistory', JSON.stringify(history));
     renderHistory();
 }
 
-function renderHistory(){
-    if(history.length===0){
-        historyBox.textContent="No history yet";
+function renderHistory() {
+    if (history.length === 0) {
+        historyContainer.innerHTML = `
+            <div class="empty-history">
+                <i class="bi bi-clock-history display-5 mb-3 d-block text-muted"></i>
+                No queries saved yet
+            </div>`;
         return;
     }
-    historyBox.innerHTML="";
-    history.forEach((h,i)=>{
-        historyBox.innerHTML += `
-        <div class="history-item">
-            <span class="text-truncate me-2">${h}</span>
-            <div>
-                <i class="bi bi-clipboard copy-icon me-2"
-                onclick="copyWithFeedback(this, '${h.replace(/'/g,"\\'")}')"></i>
-                <i class="bi bi-trash text-danger copy-icon"
-                onclick="deleteHistory(${i})"></i>
+
+    let html = '';
+    history.forEach((item, i) => {
+        const short = item.query.length > 80 ? item.query.slice(0,77)+'...' : item.query;
+        const time = new Date(item.ts).toLocaleString([], {hour:'2-digit', minute:'2-digit', day:'numeric', month:'short'});
+        html += `
+        <div class="history-item" data-index="${i}">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <div style="flex:1; overflow:hidden;">
+                    <div class="history-query" title="${escapeHtml(item.query)}">${escapeHtml(short)}</div>
+                    <div class="history-meta">${time} • ${item.params}</div>
+                </div>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary copy-history-btn" data-index="${i}">
+                        <i class="bi bi-copy"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-btn" data-index="${i}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
             </div>
         </div>`;
     });
+    historyContainer.innerHTML = html;
 }
 
-function deleteHistory(i){
-    history.splice(i,1);
-    localStorage.setItem("sqlHistory", JSON.stringify(history));
-    renderHistory();
+// ────────────────────────────────────────────────
+function showToast(msg, type = 'info') {
+    const t = document.createElement('div');
+    t.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3 shadow`;
+    t.style.zIndex = '2000';
+    t.style.minWidth = '280px';
+    t.innerHTML = `${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2800);
 }
 
-/* EVENTS */
-document.getElementById("generateBtn").onclick = generateSQL;
-document.getElementById("copyFinalBtn").onclick =
-()=>copyWithFeedback(event.target, outputBox.textContent);
+// ────────────────────────────────────────────────
+// Copy helper
+async function copyToClipboard(text, button) {
+    if (!text.trim()) return showToast('Nothing to copy', 'warning');
 
-document.getElementById("clearBtn").onclick = ()=>{
-    queryInput.value="";
-    paramsInput.value="";
-    outputBox.textContent="Generated SQL will appear here...";
+    try {
+        await navigator.clipboard.writeText(text);
+        const original = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline-secondary', 'btn-outline-primary', 'btn-outline-success');
+        setTimeout(() => {
+            button.innerHTML = original;
+            button.classList.remove('btn-success');
+            if (button.id.includes('history')) button.classList.add('btn-outline-primary');
+            else if (button.id.includes('Generated')) button.classList.add('btn-outline-success');
+            else button.classList.add('btn-outline-secondary');
+        }, 1600);
+    } catch (err) {
+        showToast('Copy failed', 'danger');
+    }
+}
+
+// ────────────────────────────────────────────────
+// Event Listeners
+els.generateBtn.addEventListener('click', () => {
+    const q = els.queryInput.value.trim();
+    const p = els.paramsInput.value.trim();
+
+    if (!q) return showToast('Enter SQL query', 'danger');
+    if (!p) return showToast('Enter parameters', 'danger');
+
+    const raw = prepareQuery(q, p);
+    if (raw.startsWith('Error')) {
+        els.outputPreview.innerHTML = `<span class="text-danger">${escapeHtml(raw)}</span>`;
+        showToast(raw, 'danger');
+    } else {
+        const formatted = formatSQL(raw);
+        els.outputPreview.innerHTML = highlightSQL(escapeHtml(formatted));
+        saveHistory(q, p);
+        showToast('Query generated', 'success');
+    }
     updateCounts();
-};
+});
 
-queryInput.oninput = updateCounts;
-paramsInput.oninput = updateCounts;
+els.beautifyBtn.addEventListener('click', () => {
+    const q = els.queryInput.value.trim();
+    if (!q) return showToast('No query to beautify', 'warning');
+    const formatted = formatSQL(q);
+    els.queryInput.value = formatted;
+    updateCounts();
+    showToast('Query beautified', 'success');
+});
 
-renderHistory();
+els.clearBtn.addEventListener('click', () => {
+    els.queryInput.value = '';
+    els.paramsInput.value = '';
+    els.outputPreview.textContent = 'Generated SQL will appear here...';
+    updateCounts();
+    showToast('Cleared', 'info');
+});
+
+// Copy buttons (all working)
+els.copyRawQueryBtn.onclick         = () => copyToClipboard(els.queryInput.value, els.copyRawQueryBtn);
+els.copyRawParamsBtn.onclick        = () => copyToClipboard(els.paramsInput.value, els.copyRawParamsBtn);
+els.copyGeneratedActionBtn.onclick  = () => copyToClipboard(els.outputPreview.textContent.trim(), els.copyGeneratedActionBtn);
+els.copyQueryInputBtn.onclick       = () => copyToClipboard(els.queryInput.value, els.copyQueryInputBtn);
+els.copyParamsInputBtn.onclick      = () => copyToClipboard(els.paramsInput.value, els.copyParamsInputBtn);
+els.copyGeneratedBtn.onclick        = () => copyToClipboard(els.outputPreview.textContent.trim(), els.copyGeneratedBtn);
+
+// History click handling
+historyContainer.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const idx = Number(btn.dataset.index);
+    const item = history[idx];
+
+    if (btn.classList.contains('delete-btn')) {
+        history.splice(idx, 1);
+        localStorage.setItem('sqlFillerHistory', JSON.stringify(history));
+        renderHistory();
+        showToast('Removed from history', 'info');
+    }
+    else if (btn.classList.contains('copy-history-btn')) {
+        const raw = prepareQuery(item.query, item.params);
+        const formatted = formatSQL(raw);
+        copyToClipboard(formatted, btn);
+        showToast('Copied formatted SQL from history', 'success');
+    }
+});
+
+// Live update counts
+els.queryInput.addEventListener('input', updateCounts);
+els.paramsInput.addEventListener('input', updateCounts);
+
+// Init
 updateCounts();
-</script>
+renderHistory();
 
+// Example on load
+setTimeout(() => {
+    if (!els.queryInput.value.trim()) {
+        els.queryInput.value = "SELECT id, name, email FROM users WHERE status = ? AND age > ? ORDER BY created_at DESC LIMIT ?";
+        els.paramsInput.value = '["active", 18, 50]';
+        updateCounts();
+    }
+}, 300);
+
+</script>
 </body>
 </html>
